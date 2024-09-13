@@ -16,3 +16,12 @@ class MetaItemPreview(CatalogItem):
     @property
     def id(self) -> int:
         return int(self.ref.split("-", 1)[0])
+
+
+@dataclass
+class MetaItem(MetaItemPreview):
+    description: str
+    imdb_rating: str
+    genres: list[str]
+    directors: list[str]
+    cast: list[str]

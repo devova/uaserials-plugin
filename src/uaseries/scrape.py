@@ -1,9 +1,10 @@
-from httpx import Client
+from typing import Optional
+from httpx import Client, codes
 from rocksdict import Rdict
 from bs4 import BeautifulSoup
 from urllib.parse import quote
 
-from .models import CatalogItem, MetaItemPreview
+from .models import CatalogItem, MetaItem, MetaItemPreview
 
 BASE_URL = "https://uaserials.pro/"
 
@@ -11,10 +12,13 @@ cache = Rdict("cache/web")
 client = Client(base_url=BASE_URL, follow_redirects=True)
 
 
-def fetch(url: str) -> BeautifulSoup:
+def fetch(url: str) -> Optional[BeautifulSoup]:
     if url not in cache:
         response = client.get(url)
-        cache[url] = response.content
+        if codes.is_success(response.status_code):
+            cache[url] = response.content
+        else:
+            return None
     return BeautifulSoup(cache[url], "html.parser")
 
 
@@ -53,3 +57,33 @@ def pase_catalog_items(soup: BeautifulSoup) -> list[MetaItemPreview]:
             )
         )
     return items
+
+
+def pase_item(soup: BeautifulSoup) -> MetaItem:
+    article = soup.find(id="dle-content").find("article")
+    title = article.find("h1").find("span", class_="oname_ua").text
+    poster = article.find("img").get("src")
+    imdb_rating = article.find("a", attrs={"data-text": "imdb"}).text
+    infos = [
+        el.text.split(":", 1)
+        for el in article.find("ul", class_="short-list").find_all("li")
+    ]
+    infos = {el[0]: el[1] for el in infos if len(el) == 2}
+
+    genres = infos.get("Жанр", "").strip().split(", ")
+    directors = infos.get("Режисер", "").strip().split(", ")
+    cast = infos.get("Актори", "").strip().split(", ")
+
+    description = article.find("div", class_="full-text").text
+    return MetaItem(
+        title=title,
+        title_original="",
+        description=description,
+        poster=poster,
+        imdb_rating=imdb_rating,
+        genres=genres,
+        directors=directors,
+        cast=cast,
+        ref="",
+        labels=[],
+    )

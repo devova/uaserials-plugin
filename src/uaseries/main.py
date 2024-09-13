@@ -1,11 +1,10 @@
-import json
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from importlib.metadata import version
 
 from urllib.parse import unquote
 
 from uaseries.mappings import TOP_NAV_TO_CATALOG
-from uaseries.scrape import fetch, parse_top_nav, pase_catalog_items
+from uaseries.scrape import fetch, parse_top_nav, pase_catalog_items, pase_item
 
 
 app = FastAPI()
@@ -50,7 +49,7 @@ def list_collection(stream_type: str, ref: str):
     items = pase_catalog_items(catalog)
     streams = [
         {
-            "id": f"uaseries:{item.id}",
+            "id": f"uaseries:{item.ref}",
             "type": stream_type,
             "name": item.title,
             "poster": item.poster,
@@ -59,25 +58,26 @@ def list_collection(stream_type: str, ref: str):
         }
         for item in items
     ]
-    print(json.dumps(streams, indent=2))
     return {"metas": streams}
 
 
 @app.get("/meta/{stream_type}/{ref}.json")
 def get_item(stream_type: str, ref: str):
     ref = unquote(ref)
-    catalog = fetch(ref)
-    items = pase_catalog_items(catalog)
-    streams = [
-        {
-            "id": f"uaseries:{item.id}",
-            "type": stream_type,
-            "name": item.title,
-            "poster": item.poster,
-            "genres": item.labels,
-            "available": True,
-        }
-        for item in items
-    ]
-    print(json.dumps(streams, indent=2))
-    return {"metas": streams}
+    _, ref = ref.split(":")
+    item = fetch(ref)
+    if not item:
+        raise HTTPException(status_code=404, detail="Meta not found")
+    item = pase_item(item)
+    meta = {
+        "id": f"uaseries:{ref}",
+        "type": stream_type,
+        "name": item.title,
+        "description": item.description,
+        "poster": item.poster,
+        "genres": item.genres,
+        "imdbRating": item.imdb_rating,
+        "director": item.directors,
+        "cast": item.cast,
+    }
+    return {"meta": meta}
