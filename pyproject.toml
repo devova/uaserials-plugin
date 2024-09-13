@@ -1,0 +1,29 @@
+[tool.poetry]
+name = "uaseries"
+version = "0.1.0"
+description = "Streamio plugin for uaseries.pro"
+authors = ["Your Name <you@example.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.114.0"
+beautifulsoup4 = "^4.12.3"
+httpx = "^0.27.2"
+rocksdict = "^0.3.23"
+cryptography = "^43.0.1"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.8.0"
+mypy = "^1.11.2"
+ipython = "^8.27.0"
+fastapi = { version = "^0.114.1", extras = ["standard"] }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pyright]
+venvPath = "."
+venv = ".venv"
